@@ -30,59 +30,105 @@ struct Invidious::User
       return subscriptions
     end
 
-    def parse_playlist_export_csv(user : User, raw_input : String)
-      # Split the input into head and body content
-      raw_head, raw_body = raw_input.strip('\n').split("\n\n", limit: 2, remove_empty: true)
-
-      # Create the playlist from the head content
-      csv_head = CSV.new(raw_head.strip('\n'), headers: true)
-      csv_head.next
-      title = csv_head[4]
-      description = csv_head[5]
-      visibility = csv_head[6]
-
-      if visibility.compare("Public", case_insensitive: true) == 0
-        privacy = PlaylistPrivacy::Public
-      else
-        privacy = PlaylistPrivacy::Private
+    def parse_playlists_export_csv(user: User, playlist_files: [], playlists_file: '')
+      playlists = []
+    
+      # Process each playlist file
+      playlist_files.each do |file|
+        playlist_title = File.basename(file, '-videos.csv')
+    
+        # Read the video data from the playlist file
+        video_data = CSV.read(file, headers: true)
+    
+        # Process each video in the playlist file
+        video_data.each do |row|
+          video_id = row['video id']
+          timestamp = row['timestamp']
+    
+          # Add your logic here to handle the video data as needed
+          # For example, you can create a PlaylistVideo object and add it to the playlist
+    
+          # playlist_video = PlaylistVideo.new({ ... })
+          # playlist.videos << playlist_video
+        end
+    
+        # Add the playlist to the list of playlists
+        playlists << playlist
       end
-
-      playlist = create_playlist(title, privacy, user)
-      Invidious::Database::Playlists.update_description(playlist.id, description)
-
-      # Add each video to the playlist from the body content
-      csv_body = CSV.new(raw_body.strip('\n'), headers: true)
-      csv_body.each do |row|
-        video_id = row[0]
-        if playlist
-          next if !video_id
-          next if video_id == "Video Id"
-
-          begin
-            video = get_video(video_id)
-          rescue ex
-            next
-          end
-
-          playlist_video = PlaylistVideo.new({
-            title:          video.title,
-            id:             video.id,
-            author:         video.author,
-            ucid:           video.ucid,
-            length_seconds: video.length_seconds,
-            published:      video.published,
-            plid:           playlist.id,
-            live_now:       video.live_now,
-            index:          Random::Secure.rand(0_i64..Int64::MAX),
-          })
-
-          Invidious::Database::PlaylistVideos.insert(playlist_video)
-          Invidious::Database::Playlists.update_video_added(playlist.id, playlist_video.index)
+    
+      # Process the playlists file
+      if !playlists_file.empty?
+        playlists_data = CSV.read(playlists_file, headers: true)
+    
+        # Process each playlist in the playlists file
+        playlists_data.each do |row|
+          playlist_id = row['id']
+          playlist_title = row['original playlist title']
+    
+          # Add your logic here to handle the playlist data as needed
+          # For example, you can create a Playlist object and add it to the list of playlists
+    
+          # playlist = Playlist.new({ ... })
+          # playlists << playlist
         end
       end
+    
+      # Return the list of playlists
+      return playlists
 
-      return playlist
-    end
+    # def parse_playlist_export_csv(user : User, raw_input : String)
+    #   # Split the input into head and body content
+    #   raw_head, raw_body = raw_input.strip('\n').split("\n\n", limit: 2, remove_empty: true)
+
+    #   # Create the playlist from the head content
+    #   csv_head = CSV.new(raw_head.strip('\n'), headers: true)
+    #   csv_head.next
+    #   title = csv_head[4]
+    #   description = csv_head[5]
+    #   visibility = csv_head[6]
+
+    #   if visibility.compare("Public", case_insensitive: true) == 0
+    #     privacy = PlaylistPrivacy::Public
+    #   else
+    #     privacy = PlaylistPrivacy::Private
+    #   end
+
+    #   playlist = create_playlist(title, privacy, user)
+    #   Invidious::Database::Playlists.update_description(playlist.id, description)
+
+    #   # Add each video to the playlist from the body content
+    #   csv_body = CSV.new(raw_body.strip('\n'), headers: true)
+    #   csv_body.each do |row|
+    #     video_id = row[0]
+    #     if playlist
+    #       next if !video_id
+    #       next if video_id == "Video Id"
+
+    #       begin
+    #         video = get_video(video_id)
+    #       rescue ex
+    #         next
+    #       end
+
+    #       playlist_video = PlaylistVideo.new({
+    #         title:          video.title,
+    #         id:             video.id,
+    #         author:         video.author,
+    #         ucid:           video.ucid,
+    #         length_seconds: video.length_seconds,
+    #         published:      video.published,
+    #         plid:           playlist.id,
+    #         live_now:       video.live_now,
+    #         index:          Random::Secure.rand(0_i64..Int64::MAX),
+    #       })
+
+    #       Invidious::Database::PlaylistVideos.insert(playlist_video)
+    #       Invidious::Database::Playlists.update_video_added(playlist.id, playlist_video.index)
+    #     end
+    #   end
+    # 
+    #   return playlist
+    # end
 
     # -------------------
     #  Invidious
